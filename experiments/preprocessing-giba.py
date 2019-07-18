@@ -322,28 +322,26 @@ if __name__ == "__main__":
 
     print(f"4 - Saving results into {args.output_folder}")
     folder: str = args.output_folder
-    if args.compress:
-        file_format: str = ".hdf.gz"
-    else:
-        file_format: str = ".hdf"
+    file_format = '.hdf'
 
     print("    4.1 Train features")
-    train.loc[:, INPUT_FEATURES].to_hdf(f"{folder}/train_features{file_format}", "df")
+    train.loc[:, INPUT_FEATURES].to_hdf(f"{folder}/train_features{file_format}", "df", complib='blosc:lz4')
     print("    4.1 Done")
 
     print("    4.2 Test features")
-    test.loc[:, INPUT_FEATURES].to_hdf(f"{folder}/test_features{file_format}", 'df')
+    test.loc[:, INPUT_FEATURES].to_hdf(f"{folder}/test_features{file_format}", 'df', complib='blosc:lz4')
     print("    4.2 Done")
 
     print("    4.3 1-2-3 Additional Targets")
-    train.loc[:, ["charge_0", "charge_1"]].to_hdf(f"{folder}/train_target_1{file_format}", 'df')
-    train.loc[:, ["XX_0", "YY_0", "ZZ_0", "XX_1", "YY_1", "ZZ_1"]].to_hdf(f"{folder}/train_target_2{file_format}", 'df')
+    train.loc[:, ["charge_0", "charge_1"]].to_hdf(f"{folder}/train_target_1{file_format}", 'df', complib='blosc:lz4')
+    train.loc[:, ["XX_0", "YY_0", "ZZ_0", "XX_1", "YY_1", "ZZ_1"]].to_hdf(f"{folder}/train_target_2{file_format}",
+                                                                          'df', complib='blosc:lz4')
     train.loc[:, ["YX_0", "ZX_0", "XY_0", "ZY_0", "XZ_0", "YZ_0", "YX_1", "ZX_1", "XY_1", "ZY_1", "XZ_1", "YZ_1"]]\
-        .to_hdf(f"{folder}/train_target_3{file_format}", 'df')
+        .to_hdf(f"{folder}/train_target_3{file_format}", 'df', complib='blosc:lz4')
     print("    4.3 Done")
 
     print("    4.4 Main train target")
-    train.loc[:, 'scalar_coupling_constant'].to_hdf(f"{folder}/train_label{file_format}", 'df')
+    train.loc[:, 'scalar_coupling_constant'].to_hdf(f"{folder}/train_label{file_format}", 'df', complib='blosc:lz4')
     print("    4.4 Done")
 
     print("4 - Done")

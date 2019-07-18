@@ -13,7 +13,7 @@ warnings.filterwarnings(action="ignore", category=FutureWarning)
 
 
 INPUT_FEATURES: List[str] = [
- 'x_0',
+ 'x_0', 'type'
  'y_0', 'z_0', 'x_1', 'y_1', 'z_1', 'c_x', 'c_y', 'c_z', 'x_closest_0', 'y_closest_0',
  'z_closest_0', 'x_closest_1', 'y_closest_1', 'z_closest_1', 'distance', 'distance_center0',
  'distance_center1',  'distance_c0', 'distance_c1', 'distance_f0', 'distance_f1', 'cos_c0_c1',

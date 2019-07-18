@@ -1,7 +1,6 @@
 import os
 import pandas as pd
 import numpy as np
-import matplotlib.pyplot as plt
 from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import StandardScaler, MinMaxScaler
 
@@ -37,8 +36,8 @@ def read_data(folder: str) -> Tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame, pd
     df_train = pd.read_csv(f'{folder}/train.csv')
     df_test = pd.read_csv(f'{folder}/test.csv')
 
-    df_giba_train = pd.read_csv(f'{folder}/train_giba.csv.gz")
-    df_giba_test = pd.read_csv(f'{folder}/test_giba.csv.gz")
+    df_giba_train = pd.read_csv(f'{folder}/train_giba.csv.gz')
+    df_giba_test = pd.read_csv(f'{folder}/test_giba.csv.gz')
 
     giba_columns_train = list(set(df_giba_train.columns).difference(set(df_train.columns)))
     giba_columns_test = list(set(df_giba_test.columns).difference(set(df_test.columns)))
@@ -46,13 +45,13 @@ def read_data(folder: str) -> Tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame, pd
     df_train = pd.concat((df_train, df_giba_train[giba_columns_train]), axis=1)
     df_test = pd.concat((df_test, df_giba_test[giba_columns_test]), axis=1)
 
-
     df_struct = pd.read_csv(f'{folder}/structures.csv')
 
     df_train_sub_charge = pd.read_csv(f'{folder}/mulliken_charges.csv')
     df_train_sub_tensor = pd.read_csv(f'{folder}/magnetic_shielding_tensors.csv')
                                
     return df_train, df_test, df_struct, df_train_sub_charge, df_train_sub_tensor
+
 
 def reduce_mem_usage(df: pd.DataFrame, verbose=True) -> pd.DataFrame:
     numerics = ['int16', 'int32', 'int64', 'float16', 'float32', 'float64']
@@ -83,7 +82,8 @@ def reduce_mem_usage(df: pd.DataFrame, verbose=True) -> pd.DataFrame:
         print('Mem. usage decreased to {:5.2f} Mb ({:.1f}% reduction)'.format(
             end_mem, 100 * (start_mem - end_mem) / start_mem))
     return df
-                               
+
+
 def map_atom_info(df_1:pd.DataFrame, df_2:pd.DataFrame, atom_idx: int) -> pd.DataFrame:
     print('Mapping...', df_1.shape, df_2.shape, atom_idx)
 
@@ -97,9 +97,8 @@ def map_atom_info(df_1:pd.DataFrame, df_2:pd.DataFrame, atom_idx: int) -> pd.Dat
                                
        
 def complete_atom_mapping(
-    df_train: pd.DataFrame, df_struct: pd.DataFrame,
+    df_train: pd.DataFrame, df_test: pd.DataFrame, df_struct: pd.DataFrame,
     df_train_sub_charge: pd.DataFrame, df_train_sub_tensor: pd.DataFrame,
-    df_struct: pd.DataFrame
 ) -> Tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]:
                                
     for atom_idx in [0, 1]:
@@ -136,8 +135,6 @@ def complete_atom_mapping(
         df_struct['atom_n'] = df_struct.groupby(
             'molecule_name')['atom_index'].transform('max')
 
-        show_ram_usage()
-        print(df_train.shape, df_test.shape)
         return df_train, df_test, df_struct
        
 
@@ -283,5 +280,70 @@ def add_features(df: pd.DataFrame) -> pd.DataFrame:
 
                                
 if __name__ == "__main__":
-                parser = arg.ArgumentParser(description='Preprocessing with additional Giba Features and 4 target output')
-                parser
+    parser = arg.ArgumentParser(description='Preprocessing with additional Giba Features and 4 target output')
+    parser.add_argument("--raw-folder", nargs='?', default="../data",
+                        help="Folder with raw training data, without closing /")
+    parser.add_argument('--output-folder', nargs='?', default="../data/champs+giba",
+                        help='Folder to store processed data')
+
+    parser.add_argument('--compress', '-c', action='store_true', help='Compress output files into .gz format')
+
+    args = parser.parse_args()
+
+    print(f"1 - Reading files from {args.raw_folder}")
+    train, test, struct, sub_charge, sub_tensor = read_data(args.raw_folder)
+    print(f"1 - Done!")
+
+    print("2 - Mapping Data into Master Data frame")
+    train, test, struct = complete_atom_mapping(train, test, struct, sub_charge, sub_tensor)
+    print("2 - Done")
+
+    print("3 - Developing Distance Features")
+
+    print("    3.1 Trivial XYZ Distance")
+    train = make_features(train)
+    test = make_features(test)
+    print("    3.1 Done")
+
+    print("    3.2 Closest-Farthest features")
+    train = get_dist(train)
+    test = get_dist(test)
+    print("    3.2 Done")
+
+    print("    3.3 Cosine Distance Features")
+    train = add_features(train)
+    test = add_features(test)
+    print("    3.3 Done")
+
+    print("3 - Done")
+
+    print(f"Train Data has {train.shape[0]} examples with {train.shape[1]} features each(including target values)")
+    print(f"Test data has {test.shape[0]} examples with {test.shape[1]} features")
+
+    print(f"4 - Saving results into {args.output_folder}")
+    folder: str = args.output_folder
+    if args.compress:
+        file_format: str = ".hdf.gz"
+    else:
+        file_format: str = ".hdf"
+
+    print("    4.1 Train features")
+    train.loc[:, INPUT_FEATURES].to_hdf(f"{folder}/train_features{file_format}", "df")
+    print("    4.1 Done")
+
+    print("    4.2 Test features")
+    test.loc[:, INPUT_FEATURES].to_hdf(f"{folder}/test_features{file_format}", 'df')
+    print("    4.2 Done")
+
+    print("    4.3 1-2-3 Additional Targets")
+    train.loc[:, ["charge_0", "charge_1"]].to_hdf(f"{folder}/train_target_1{file_format}", 'df')
+    train.loc[:, ["XX_0", "YY_0", "ZZ_0", "XX_1", "YY_1", "ZZ_1"]].to_hdf(f"{folder}/train_target_2{file_format}", 'df')
+    train.loc[:, ["YX_0", "ZX_0", "XY_0", "ZY_0", "XZ_0", "YZ_0", "YX_1", "ZX_1", "XY_1", "ZY_1", "XZ_1", "YZ_1"]]\
+        .to_hdf(f"{folder}/train_target_3{file_format}", 'df')
+    print("    4.3 Done")
+
+    print("    4.4 Main train target")
+    train.loc[:, 'scalar_coupling_constant'].to_hdf(f"{folder}/train_label{file_format}", 'df')
+    print("    4.4 Done")
+
+    print("4 - Done")

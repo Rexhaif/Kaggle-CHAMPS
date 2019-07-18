@@ -1,2 +1,4 @@
 ./data/*
-./data/* > .gitignore/.gitkeep
+!*/.gitkeep
+./models/*
+./submits/*

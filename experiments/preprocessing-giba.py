@@ -5,6 +5,12 @@ from typing import *
 
 import argparse as arg
 
+import warnings
+
+warnings.filterwarnings("ignore")
+warnings.filterwarnings(action="ignore", category=DeprecationWarning)
+warnings.filterwarnings(action="ignore", category=FutureWarning)
+
 
 INPUT_FEATURES: List[str] = [
  'x_0',

@@ -1,11 +1,5 @@
-import os
 import pandas as pd
 import numpy as np
-from sklearn.model_selection import train_test_split
-from sklearn.preprocessing import StandardScaler, MinMaxScaler
-
-import psutil
-import os
 
 from typing import *
 
@@ -84,7 +78,7 @@ def reduce_mem_usage(df: pd.DataFrame, verbose=True) -> pd.DataFrame:
     return df
 
 
-def map_atom_info(df_1:pd.DataFrame, df_2:pd.DataFrame, atom_idx: int) -> pd.DataFrame:
+def map_atom_info(df_1: pd.DataFrame, df_2: pd.DataFrame, atom_idx: int) -> pd.DataFrame:
     print('Mapping...', df_1.shape, df_2.shape, atom_idx)
 
     df = pd.merge(df_1, df_2.drop_duplicates(subset=['molecule_name', 'atom_index']), how='left',
@@ -135,7 +129,7 @@ def complete_atom_mapping(
         df_struct['atom_n'] = df_struct.groupby(
             'molecule_name')['atom_index'].transform('max')
 
-        return df_train, df_test, df_struct
+    return df_train, df_test, df_struct
        
 
 def make_features(df: pd.DataFrame) -> pd.DataFrame:
